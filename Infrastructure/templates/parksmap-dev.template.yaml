@@ -1,0 +1,156 @@
+apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: parksmap-dev
+objects:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewApp
+    creationTimestamp: null
+    generation: 1
+    labels:
+      app: parksmap
+      type: parksmap-frontend
+    name: parksmap
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      app: parksmap
+      deploymentconfig: parksmap
+      type: parksmap-frontend
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+      type: Rolling
+    template:
+      metadata:
+        annotations:
+          openshift.io/generated-by: OpenShiftNewApp
+        creationTimestamp: null
+        labels:
+          app: parksmap
+          deploymentconfig: parksmap
+          type: parksmap-frontend
+      spec:
+        containers:
+        - env:
+          - name: APPNAME
+            value: Parks Frontend Dev
+          image: 172.30.1.1:5000/fz-parks-dev/parksmap:0.0-0
+          imagePullPolicy: IfNotPresent
+          name: parksmap
+          resources: {}
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    test: false
+    triggers:
+    - type: ConfigChange
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - parksmap
+        from:
+          kind: ImageStreamTag
+          name: parksmap:0.0-0
+          namespace: fz-parks-dev
+      type: ImageChange
+  status:
+    availableReplicas: 0
+    latestVersion: 0
+    observedGeneration: 0
+    replicas: 0
+    unavailableReplicas: 0
+    updatedReplicas: 0
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewBuild
+    creationTimestamp: null
+    labels:
+      build: parksmap
+    name: parksmap
+  spec:
+    failedBuildsHistoryLimit: 5
+    nodeSelector: null
+    output:
+      to:
+        kind: ImageStreamTag
+        name: parksmap:latest
+    postCommit: {}
+    resources: {}
+    runPolicy: Serial
+    source:
+      binary: {}
+      type: Binary
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: redhat-openjdk18-openshift:1.2
+          namespace: fz-parks-dev
+      type: Docker
+    successfulBuildsHistoryLimit: 5
+    triggers:
+    - github:
+        secret: xjJxz_pIdYGHSXgl8yUn
+      type: GitHub
+    - generic:
+        secret: 8UY201sEktShSsfYsvnN
+      type: Generic
+  status:
+    lastVersion: 0
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      openshift.io/generated-by: OpenShiftNewBuild
+      openshift.io/image.dockerRepositoryCheck: 2018-07-21T04:04:40Z
+    creationTimestamp: null
+    generation: 3
+    labels:
+      build: parksmap
+    name: parksmap
+  spec:
+    lookupPolicy:
+      local: false
+  status:
+    dockerImageRepository: ""
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    creationTimestamp: null
+    generation: 1
+    name: redhat-openjdk18-openshift
+  spec:
+    lookupPolicy:
+      local: false
+  status:
+    dockerImageRepository: ""
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "parksmap"
+    labels:
+      name: "parksmap"
+  spec:
+    ports:
+      - name: parksmap
+        port: 8080
+    selector:
+      name: "parksmap"

@@ -1,0 +1,143 @@
+// Jenkinsfile for MLBParks
+podTemplate(
+  label: "skopeo-pod",
+  cloud: "openshift",
+  inheritFrom: "maven",
+  containers: [
+    containerTemplate(
+      name: "jnlp",
+      image: "docker-registry.default.svc:5000/${GUID}-jenkins/jenkins-slave-appdev",
+      resourceRequestMemory: "1Gi",
+      resourceLimitMemory: "2Gi"
+    )
+  ]
+) {
+  node('skopeo-pod') {
+    echo "GUID: ${GUID}"
+    echo "CLUSTER: ${CLUSTER}"
+
+    // Checkout Source Code
+    stage('Checkout Source') {
+	git url:"https://github.com/nielsvaneeden/advdev_homework.git"
+    }
+
+    def mvnCmd = "mvn -s ../nexus_settings.xml"
+
+    dir('MLBParks') {
+
+      def groupId    = getGroupIdFromPom("pom.xml")
+      def artifactId = getArtifactIdFromPom("pom.xml")
+      def version    = getVersionFromPom("pom.xml")
+
+      def devTag  = "${version}-${BUILD_NUMBER}"
+      def prodTag = "${version}"
+
+      stage('Build war') {
+        echo "Building version ${version}"
+        sh "${mvnCmd} clean package -DskipTests"
+      }
+
+      stage('Unit Tests') {
+        echo "Running Unit Tests"
+        sh "${mvnCmd} test"
+      }
+
+      stage('Code Analysis') {
+        echo "Running Code Analysis"
+        sh "${mvnCmd} sonar:sonar -Dsonar.host.url=http://sonarqube-${GUID}-sonarqube.apps.${CLUSTER}/ -Dsonar.projectName=${JOB_BASE_NAME}-${devTag}"
+      }
+
+      stage('Publish to Nexus') {
+        echo "Publish to Nexus"
+        sh "${mvnCmd} deploy -DskipTests=true -DaltDeploymentRepository=nexus::default::http://nexus3.${GUID}-nexus.svc.cluster.local:8081/repository/releases"
+      }
+
+      stage('Build and Tag OpenShift Image') {
+        echo "Building OpenShift container image mlbparks:${devTag}"
+
+        sh "oc start-build mlbparks --follow --from-file=./target/mlbparks.war -n ${GUID}-parks-dev"
+        openshiftTag alias: 'false', destStream: 'mlbparks', destTag: devTag, destinationNamespace: '${GUID}-parks-dev', namespace: '${GUID}-parks-dev', srcStream: 'mlbparks', srcTag: 'latest', verbose: 'false'
+      }
+
+      stage('Deploy MLBParks to Dev') {
+        echo "Deploying container image to Development Project"
+        sh "oc set image dc/mlbparks mlbparks=docker-registry.default.svc:5000/${GUID}-parks-dev/mlbparks:${devTag} -n ${GUID}-parks-dev"
+
+
+        sh "oc delete configmap mlbparks-config -n ${GUID}-parks-dev --ignore-not-found=true"
+        sh "oc create configmap mlbparks-config --from-literal=DB_HOST=mongodb --from-literal=DB_PORT=27017 --from-literal=DB_USERNAME=mongodb --from-literal=DB_PASSWORD=mongodb --from-literal=DB_NAME=parks -n ${GUID}-parks-dev"
+        sh "oc env dc/mlbparks --from=configmap/mlbparks-config -n ${GUID}-parks-dev"
+
+        openshiftDeploy depCfg: 'mlbparks', namespace: '${GUID}-parks-dev', verbose: 'false', waitTime: '', waitUnit: 'sec'
+        openshiftVerifyDeployment depCfg: 'mlbparks', namespace: '${GUID}-parks-dev', replicaCount: '1', verbose: 'false', verifyReplicaCount: 'false', waitTime: '', waitUnit: 'sec'
+        openshiftVerifyService namespace: '${GUID}-parks-dev', svcName: 'mlbparks', verbose: 'false'
+      }
+
+      stage('Integration Tests') {
+        echo "Running Integration Tests"
+
+        echo "Health check MLBParks"
+	      sh "curl -i  http://mlbparks-${GUID}-parks-dev.apps.${CLUSTER}/ws/healthz/"
+      }
+
+      stage('Copy Image to Nexus Docker Registry') {
+        echo "Copy image to Nexus Docker Registry"
+
+        sh "skopeo copy --src-tls-verify=false --dest-tls-verify=false --src-creds openshift:\$(oc whoami -t) --dest-creds admin:admin123  docker://docker-registry.default.svc.cluster.local:5000/${GUID}-parks-dev/mlbparks:${devTag} docker://nexus-registry.${GUID}-nexus.svc.cluster.local:5000/mlbparks:${devTag}"
+        openshiftTag alias: 'false', destStream: 'mlbparks', destTag: prodTag, destinationNamespace: '${GUID}-parks-dev', namespace: '${GUID}-parks-dev', srcStream: 'mlbparks', srcTag: devTag, verbose: 'false'
+      }
+
+      // Blue/Green Deployment into Production
+      // -------------------------------------
+      // Do not activate the new version yet.
+      def destApp   = "mlbparks-green"
+      def activeApp = ""
+
+      stage('Blue/Green Production Deployment') {
+
+        activeApp = sh(returnStdout: true, script: "oc get route mlbparks -n ${GUID}-parks-prod -o jsonpath='{ .spec.to.name }'").trim()
+        if (activeApp == "mlbparks-green") {
+          destApp = "mlbparks-blue"
+        }
+        echo "Active Application:      " + activeApp
+        echo "Destination Application: " + destApp
+
+        // Update the Image on the Production Deployment Config
+        sh "oc set image dc/${destApp} ${destApp}=docker-registry.default.svc:5000/${GUID}-parks-dev/mlbparks:${prodTag} -n ${GUID}-parks-prod"
+
+        // Update the Config Map which contains the users for the Tasks application
+        sh "oc delete configmap ${destApp}-config -n ${GUID}-parks-prod --ignore-not-found=true"
+        sh "oc create configmap ${destApp}-config --from-literal=DB_HOST=mongodb --from-literal=DB_PORT=27017 --from-literal=DB_USERNAME=mongodb --from-literal=DB_PASSWORD=mongodb --from-literal=DB_NAME=parks -n ${GUID}-parks-prod"
+        sh "oc env dc/${destApp} --from=configmap/${destApp}-config -n ${GUID}-parks-prod"
+
+        // Deploy the inactive application.
+        // Replace ${GUID}-parks-prod with the name of your production project
+        openshiftDeploy depCfg: destApp, namespace: '${GUID}-parks-prod', verbose: 'true', waitTime: '', waitUnit: 'sec'
+        openshiftVerifyDeployment depCfg: destApp, namespace: '${GUID}-parks-prod', replicaCount: '1', verbose: 'true', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
+        openshiftVerifyService namespace: '${GUID}-parks-prod', svcName: destApp, verbose: 'true'
+      }
+
+
+      stage('Switch over to new Version') {
+        //input "Switch Production?"
+        echo "Switching Production application to ${destApp}."
+        sh 'oc patch route mlbparks -n ${GUID}-parks-prod -p \'{"spec":{"to":{"name":"' + destApp + '"}}}\''
+      }
+    }
+  }
+}
+
+// Convenience Functions to read variables from the pom.xml
+// Do not change anything below this line.
+def getVersionFromPom(pom) {
+  def matcher = readFile(pom) =~ '<version>(.+)</version>'
+  matcher ? matcher[0][1] : null
+}
+def getGroupIdFromPom(pom) {
+  def matcher = readFile(pom) =~ '<groupId>(.+)</groupId>'
+  matcher ? matcher[0][1] : null
+}
+def getArtifactIdFromPom(pom) {
+  def matcher = readFile(pom) =~ '<artifactId>(.+)</artifactId>'
+  matcher ? matcher[0][1] : null
+}
