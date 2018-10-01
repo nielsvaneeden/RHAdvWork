@@ -1,20 +1,36 @@
 apiVersion: v1
 kind: Template
 metadata:
-  creationTimestamp: null
-  name: ${GUID}-nexus
+  name: nexus
 objects:
 - apiVersion: v1
-  kind: DeploymentConfig
+  kind: ImageStream
   metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-    creationTimestamp: null
-    generation: 1
     labels:
       app: nexus3
     name: nexus3
-    namespace: ${GUID}-nexus
+  spec:
+    tags:
+    - from:
+        kind: DockerImage
+        name: docker.io/sonatype/nexus3:latest
+      name: latest
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    name: nexus-pvc
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 4Gi
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: nexus3
+    name: nexus3
   spec:
     replicas: 1
     revisionHistoryLimit: 10
@@ -23,33 +39,26 @@ objects:
       deploymentconfig: nexus3
     strategy:
       activeDeadlineSeconds: 21600
-      resources: {}
-      rollingParams:
-        intervalSeconds: 1
-        maxSurge: 25%
-        maxUnavailable: 25%
+      recreateParams:
         timeoutSeconds: 600
-        updatePeriodSeconds: 1
+      resources: {}
       type: Recreate
     template:
       metadata:
-        annotations:
-          openshift.io/generated-by: OpenShiftNewApp
-        creationTimestamp: null
         labels:
           app: nexus3
           deploymentconfig: nexus3
       spec:
         containers:
-        - image: docker.io/sonatype/nexus3@sha256:e57d22b59b607d055f9241f1613073ec1b46c37afae30d67707072f19a87d244
+        - image: sonatype/nexus3
           imagePullPolicy: Always
           livenessProbe:
+            exec:
+              command:
+              - echo
+              - ok
             failureThreshold: 3
-            httpGet:
-              path: /
-              port: 8081
-              scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
@@ -60,10 +69,10 @@ objects:
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /
+              path: /repository/maven-public/
               port: 8081
               scheme: HTTP
-            initialDelaySeconds: 300
+            initialDelaySeconds: 60
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
@@ -88,7 +97,6 @@ objects:
             claimName: nexus-pvc
     test: false
     triggers:
-    - type: ConfigChange
     - imageChangeParams:
         automatic: true
         containerNames:
@@ -98,91 +106,29 @@ objects:
           name: nexus3:latest
           namespace: ${GUID}-nexus
       type: ImageChange
-  status:
-    availableReplicas: 0
-    latestVersion: 0
-    observedGeneration: 0
-    replicas: 0
-    unavailableReplicas: 0
-    updatedReplicas: 0
-- apiVersion: v1
-  kind: ImageStream
-  metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-      openshift.io/image.dockerRepositoryCheck: 2018-07-20T07:43:19Z
-    creationTimestamp: null
-    generation: 2
-    labels:
-      app: nexus3
-    name: nexus3
-    namespace: ${GUID}-nexus
-  spec:
-    lookupPolicy:
-      local: false
-    tags:
-    - annotations:
-        openshift.io/imported-from: docker.io/sonatype/nexus3:latest
-      from:
-        kind: DockerImage
-        name: sonatype/nexus3:latest
-      generation: 2
-      importPolicy: {}
-      name: latest
-      referencePolicy:
-        type: Source
-  status:
-    dockerImageRepository: docker-registry.default.svc:5000/${GUID}-nexus/nexus3
-    tags:
-    - conditions:
-      - generation: 2
-        lastTransitionTime: 2018-07-20T07:43:19Z
-        message: dockerimage.image.openshift.io "docker-registry.default.svc:5000/${GUID}-assignment/nexus3:latest"
-          not found
-        reason: NotFound
-        status: "False"
-        type: ImportSuccess
-      items: null
-      tag: latest
-- apiVersion: v1
-  kind: Route
-  metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-      openshift.io/host.generated: "true"
-    creationTimestamp: null
-    labels:
-      app: nexus3
-    name: nexus3
-    namespace: ${GUID}-nexus
-  spec:
-    port:
-      targetPort: 8081-tcp
-    to:
-      kind: Service
-      name: nexus3
-      weight: 100
-    wildcardPolicy: None
-  status:
-    ingress:
-    - conditions:
-      - lastTransitionTime: 2018-07-20T07:43:19Z
-        status: "True"
-        type: Admitted
-      routerName: router
-      wildcardPolicy: None
 - apiVersion: v1
   kind: Service
   metadata:
-    annotations:
-      openshift.io/generated-by: OpenShiftNewApp
-    creationTimestamp: null
+    labels:
+      app: nexus3
+    name: nexus-registry
+  spec:
+    ports:
+    - port: 5000
+      protocol: TCP
+      targetPort: 5000
+    selector:
+      app: nexus3
+      deploymentconfig: nexus3
+    sessionAffinity: None
+    type: ClusterIP
+- apiVersion: v1
+  kind: Service
+  metadata:
     labels:
       app: nexus3
     name: nexus3
-    namespace: ${GUID}-nexus
   spec:
-    clusterIP: 172.30.34.17
     ports:
     - name: 8081-tcp
       port: 8081
@@ -193,20 +139,6 @@ objects:
       deploymentconfig: nexus3
     sessionAffinity: None
     type: ClusterIP
-  status:
-    loadBalancer: {}
-- apiVersion: v1
-  kind: PersistentVolumeClaim
-  metadata:
-    name: nexus-pvc
-  spec:
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: 4Gi
 parameters:
-  - displayName: GUID
-    name: GUID
-    required: true
-    value: 1fa2
+- description: GUID
+  name: GUID
