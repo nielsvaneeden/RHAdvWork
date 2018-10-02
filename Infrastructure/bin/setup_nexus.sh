@@ -33,6 +33,8 @@ echo "Setting up Nexus in project $GUID-nexus"
 oc policy add-role-to-user edit system:serviceaccount:gpte-jenkins:jenkins -n $GUID-nexus
 
 oc process -f Infrastructure/templates/nexus.template.yaml -n ${GUID}-nexus -p GUID=${GUID} | oc create -n ${GUID}-nexus -f -
+oc expose svc/nexus3 -n ${GUID}-nexus
+oc expose svc/nexus-registry -n ${GUID}-nexus
 
 while : ; do
     oc get pod -n ${GUID}-nexus | grep '\-1\-' | grep -v deploy | grep "1/1"
@@ -43,12 +45,6 @@ while : ; do
         break
     fi
 done
-
-oc expose svc/nexus3 -n ${GUID}-nexus
-oc expose svc/nexus-registry -n ${GUID}-nexus
-
-oc annotate route nexus3 console.alpha.openshift.io/overview-app-route=true
-oc annotate route nexus-registry console.alpha.openshift.io/overview-app-route=false
 
 curl -o setup_nexus3.sh -s https://raw.githubusercontent.com/wkulhanek/ocp_advanced_development_resources/master/nexus/setup_nexus3.sh
 chmod +x setup_nexus3.sh
