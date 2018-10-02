@@ -123,7 +123,7 @@ podTemplate(
 
         // Deploy the inactive application.
         // Replace ${GUID}-parks-prod with the name of your production project
-        openshiftDeploy depCfg: destApp, namespace: '${GUID}-parks-prod', verbose: 'true', waitTime: '', waitUnit: 'sec'
+        openshiftDeploy depCfg: destApp, namespace: '${GUID}-parks-prod', verbose: 'true', waitTime: '20', waitUnit: 'min'
         openshiftVerifyDeployment depCfg: destApp, namespace: '${GUID}-parks-prod', replicaCount: '1', verbose: 'true', verifyReplicaCount: 'true', waitTime: '', waitUnit: 'sec'
         openshiftVerifyService namespace: '${GUID}-parks-prod', svcName: destApp, verbose: 'true'
       }
