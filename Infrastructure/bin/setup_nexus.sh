@@ -27,26 +27,30 @@ echo "Setting up Nexus in project $GUID-nexus"
 
 # Ideally just calls a template
 # oc new-app -f ./Infrastructure/templates/nexus.yaml --param .....
-# To be Implemented by Student
-oc policy add-role-to-user edit system:serviceaccount:gpte-jenkins:jenkins -n $GUID-nexus
-oc new-app -f ./Infrastructure/templates/nexus.template.yaml \
-  --param GUID=$GUID -n $GUID-nexus
 
-# wait for nexus
+# To be Implemented by Student
+
+oc policy add-role-to-user edit system:serviceaccount:gpte-jenkins:jenkins -n $GUID-nexus
+
+oc process -f Infrastructure/templates/nexus.template.yaml -n ${GUID}-nexus -p GUID=${GUID} | oc create -n ${GUID}-nexus -f -
+
 while : ; do
-  echo "Checking if Nexus is Ready..."
-  oc get pod -n ${GUID}-nexus|grep '\-1\-'|grep -v deploy|grep "1/1"
-  [[ "$?" == "1" ]] || break
-  echo "...no. Sleeping 60 seconds."
-  sleep 60
+    oc get pod -n ${GUID}-nexus | grep '\-1\-' | grep -v deploy | grep "1/1"
+    if [ $? == "1" ]
+      then
+        sleep 10
+      else
+        break
+    fi
 done
+
+oc expose svc/nexus3 -n ${GUID}-nexus
+oc expose svc/nexus-registry -n ${GUID}-nexus
+
+oc annotate route nexus3 console.alpha.openshift.io/overview-app-route=true
+oc annotate route nexus-registry console.alpha.openshift.io/overview-app-route=false
 
 curl -o setup_nexus3.sh -s https://raw.githubusercontent.com/wkulhanek/ocp_advanced_development_resources/master/nexus/setup_nexus3.sh
 chmod +x setup_nexus3.sh
 sh setup_nexus3.sh admin admin123 http://$(oc get route nexus3 --template='{{ .spec.host }}' -n ${GUID}-nexus )
-rm setup_nexus3.sh
-
-# expose registry
-oc expose dc nexus3 --port=5000 --name=nexus-registry -n "${GUID}-nexus"
-oc create route edge nexus-registry --service=nexus-registry --port=5000 -n "${GUID}-nexus"
-
+rm -f setup_nexus3.sh
