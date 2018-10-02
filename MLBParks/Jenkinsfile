@@ -18,7 +18,7 @@ podTemplate(
 
     // Checkout Source Code
     stage('Checkout Source') {
-	git url:"https://github.com/nielsvaneeden/advdev_homework.git"
+	git url:'https://github.com/nielsvaneeden/RHAdvWork.git'
     }
 
     def mvnCmd = "mvn -s ../nexus_settings.xml"
