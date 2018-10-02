@@ -77,7 +77,10 @@ objects:
             timeoutSeconds: 600
           resources:
             limits:
+              cpu: "2"
               memory: ${MEMORY_LIMIT}
+            requests:
+              cpu: 500m
           securityContext:
             capabilities: {}
             privileged: false
@@ -209,7 +212,7 @@ parameters:
   - displayName: Jenkins memory limit
     name: MEMORY_LIMIT
     required: true
-    value: 1Gi
+    value: 2Gi
   - displayName: GUID
     name: GUID
     required: true
