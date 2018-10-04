@@ -25,7 +25,7 @@ MONGODB_PASSWORD="mongodb"
 MONGODB_ADMIN_PASSWORD="mongodb"
 MONGODB_VOLUME="4Gi"
 
-oc create -f ./Infrastructure/templates/mongo-heasless.yaml -n $GUID-parks-prod
+oc create -f ./Infrastructure/templates/mongo-headless.yaml -n $GUID-parks-prod
 oc create -f ./Infrastructure/templates/mongo-regular-service.yaml -n $GUID-parks-prod
 oc create -f ./Infrastructure/templates/mongo-statefulset.yaml -n $GUID-parks-prod
 
