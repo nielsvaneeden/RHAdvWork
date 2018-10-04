@@ -18,13 +18,6 @@ oc policy add-role-to-group system:image-puller system:serviceaccounts:$GUID-par
 oc policy add-role-to-user edit system:serviceaccount:$GUID-jenkins:jenkins -n $GUID-parks-prod
 oc policy add-role-to-user admin system:serviceaccount:gpte-jenkins:jenkins -n $GUID-parks-prod
 
-#mongodb
-MONGODB_DATABASE="mongodb"
-MONGODB_USERNAME="mongodb"
-MONGODB_PASSWORD="mongodb"
-MONGODB_ADMIN_PASSWORD="mongodb"
-MONGODB_VOLUME="4Gi"
-
 oc create -f ./Infrastructure/templates/mongo-headless.yaml -n $GUID-parks-prod
 oc create -f ./Infrastructure/templates/mongo-regular-service.yaml -n $GUID-parks-prod
 oc create -f ./Infrastructure/templates/mongo-statefulset.yaml -n $GUID-parks-prod
