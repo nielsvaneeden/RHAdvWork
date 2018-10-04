@@ -18,27 +18,22 @@ oc policy add-role-to-user admin system:serviceaccount:gpte-jenkins:jenkins -n $
 
 oc new-app -e MONGODB_USER=mongodb -e MONGODB_PASSWORD=mongodb -e MONGODB_DATABASE=parks -e MONGODB_ADMIN_PASSWORD=mongodb --name=mongodb registry.access.redhat.com/rhscl/mongodb-34-rhel7:latest -n ${GUID}-parks-dev
 
-#create buildconfig
 oc new-build --binary=true --name="mlbparks" jboss-eap70-openshift:1.7 -n ${GUID}-parks-dev
 oc new-build --binary=true --name="nationalparks" redhat-openjdk18-openshift:1.2 -n ${GUID}-parks-dev
 oc new-build --binary=true --name="parksmap" redhat-openjdk18-openshift:1.2 -n ${GUID}-parks-dev
 
-#create configmap
-oc create configmap mlbparks-config --from-literal=APPNAME="MLB Parks (Dev)" -n ${GUID}-parks-dev
-oc create configmap nationalparks-config --from-literal=APPNAME="National Parks (Dev)" -n ${GUID}-parks-dev
-oc create configmap parksmap-config --from-literal=APPNAME="ParksMap (Dev)" -n ${GUID}-parks-dev
+oc create configmap mlbparks-config --from-env-file=./Infrastructure/templates/MLBParks-dev.env -n ${GUID}-parks-dev
+oc create configmap nationalparks-config --from-env-file=./Infrastructure/templates/NationalParks-dev.env -n ${GUID}-parks-dev
+oc create configmap parksmap-config --from-env-file=./Infrastructure/templates/ParksMap-dev.env -n ${GUID}-parks-dev
 
-#create app
 oc new-app ${GUID}-parks-dev/mlbparks:0.0-0 --name=mlbparks --allow-missing-imagestream-tags=true -n ${GUID}-parks-dev
 oc new-app ${GUID}-parks-dev/nationalparks:0.0-0 --name=nationalparks --allow-missing-imagestream-tags=true -n ${GUID}-parks-dev
 oc new-app ${GUID}-parks-dev/parksmap:0.0-0 --name=parksmap --allow-missing-imagestream-tags=true -n ${GUID}-parks-dev
 
-#remove triggers
 oc set triggers dc/mlbparks --remove-all -n ${GUID}-parks-dev
 oc set triggers dc/nationalparks --remove-all -n ${GUID}-parks-dev
 oc set triggers dc/parksmap --remove-all -n ${GUID}-parks-dev
 
-#set ent for dc
 oc set env dc/mlbparks --from=configmap/mlbparks-config -n ${GUID}-parks-dev
 oc set env dc/nationalparks --from=configmap/nationalparks-config -n ${GUID}-parks-dev
 oc set env dc/parksmap --from=configmap/parksmap-config -n ${GUID}-parks-dev
@@ -52,8 +47,6 @@ oc set probe dc/mlbparks --readiness --failure-threshold 3 --initial-delay-secon
 oc set probe dc/nationalparks --liveness --failure-threshold 5 --initial-delay-seconds 30 -- echo ok -n ${GUID}-parks-dev
 oc set probe dc/nationalparks --readiness --failure-threshold 3 --initial-delay-seconds 60 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-dev
 
-
-#expose svcs
 oc expose dc mlbparks --port 8080 -n ${GUID}-parks-dev
 oc expose dc nationalparks --port 8080 -n ${GUID}-parks-dev
 oc expose dc parksmap --port 8080 -n ${GUID}-parks-dev

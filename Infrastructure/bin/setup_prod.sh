@@ -18,6 +18,7 @@ oc policy add-role-to-group system:image-puller system:serviceaccounts:$GUID-par
 oc policy add-role-to-user edit system:serviceaccount:$GUID-jenkins:jenkins -n $GUID-parks-prod
 oc policy add-role-to-user admin system:serviceaccount:gpte-jenkins:jenkins -n $GUID-parks-prod
 
+#mongodb
 MONGODB_DATABASE="mongodb"
 MONGODB_USERNAME="mongodb"
 MONGODB_PASSWORD="mongodb"
@@ -34,14 +35,15 @@ oc new-app -f ./Infrastructure/templates/mongo-stateful.template.yaml \
     --param MONGODB_VOLUME=${MONGODB_VOLUME}\
     --param MONGODB_SERVICE_NAME=${MONGODB_SERVICE_NAME}
 
-oc create configmap mlbparks-blue-config --from-literal=APPNAME="MLB Parks (Blue)" -n ${GUID}-parks-prod
-oc create configmap nationalparks-blue-config --from-literal=APPNAME="National Parks (Blue)" -n ${GUID}-parks-prod
-oc create configmap parksmap-blue-config --from-literal=APPNAME="ParksMap (Blue)" -n ${GUID}-parks-prod
-oc create configmap mlbparks-green-config --from-literal=APPNAME="MLB Parks (Green)" -n ${GUID}-parks-prod
-oc create configmap nationalparks-green-config --from-literal=APPNAME="National Parks (Green)" -n ${GUID}-parks-prod
-oc create configmap parksmap-green-config --from-literal=APPNAME="ParksMap (Green)" -n ${GUID}-parks-prod
+#configmaps
+oc create configmap mlbparks-blue-config --from-env-file=./Infrastructure/templates/MLBParks-blue.env -n ${GUID}-parks-prod
+oc create configmap nationalparks-blue-config --from-env-file=./Infrastructure/templates/NationalParks-blue.env -n ${GUID}-parks-prod
+oc create configmap parksmap-blue-config --from-env-file=./Infrastructure/templates/ParksMap-blue.env -n ${GUID}-parks-prod
+oc create configmap mlbparks-green-config --from-env-file=./Infrastructure/templates/MLBParks-green.env -n ${GUID}-parks-prod
+oc create configmap nationalparks-green-config --from-env-file=./Infrastructure/templates/NationalParks-green.env -n ${GUID}-parks-prod
+oc create configmap parksmap-green-config --from-env-file=./Infrastructure/templates/ParksMap-green.env -n ${GUID}-parks-prod
 
-
+#blue
 oc new-app ${GUID}-parks-dev/mlbparks:0.0 --name=mlbparks-blue --allow-missing-imagestream-tags=true -n ${GUID}-parks-prod
 oc new-app ${GUID}-parks-dev/nationalparks:0.0 --name=nationalparks-blue --allow-missing-imagestream-tags=true -n ${GUID}-parks-prod
 oc new-app ${GUID}-parks-dev/parksmap:0.0 --name=parksmap-blue --allow-missing-imagestream-tags=true -n ${GUID}-parks-prod
@@ -54,8 +56,14 @@ oc set env dc/mlbparks-blue --from=configmap/mlbparks-blue-config -n ${GUID}-par
 oc set env dc/nationalparks-blue --from=configmap/nationalparks-blue-config -n ${GUID}-parks-prod
 oc set env dc/parksmap-blue --from=configmap/parksmap-blue-config -n ${GUID}-parks-prod
 
+oc set probe dc/parksmap-blue --liveness --failure-threshold 5 --initial-delay-seconds 30 -- echo ok -n ${GUID}-parks-prod
+oc set probe dc/parksmap-blue --readiness --failure-threshold 5 --initial-delay-seconds 60 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-prod
+oc set probe dc/mlbparks-blue --liveness --failure-threshold 5 --initial-delay-seconds 30 -- echo ok -n ${GUID}-parks-prod
+oc set probe dc/mlbparks-blue --readiness --failure-threshold 3 --initial-delay-seconds 60 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-prod
+oc set probe dc/nationalparks-blue --liveness --failure-threshold 5 --initial-delay-seconds 30 -- echo ok -n ${GUID}-parks-prod
+oc set probe dc/nationalparks-blue --readiness --failure-threshold 3 --initial-delay-seconds 60 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-prod
 
-
+#green
 oc new-app ${GUID}-parks-dev/mlbparks:0.0 --name=mlbparks-green --allow-missing-imagestream-tags=true -n ${GUID}-parks-prod
 oc new-app ${GUID}-parks-dev/nationalparks:0.0 --name=nationalparks-green --allow-missing-imagestream-tags=true -n ${GUID}-parks-prod
 oc new-app ${GUID}-parks-dev/parksmap:0.0 --name=parksmap-green --allow-missing-imagestream-tags=true -n ${GUID}-parks-prod
@@ -68,7 +76,14 @@ oc set env dc/mlbparks-green --from=configmap/mlbparks-green-config -n ${GUID}-p
 oc set env dc/nationalparks-green --from=configmap/nationalparks-green-config -n ${GUID}-parks-prod
 oc set env dc/parksmap-green --from=configmap/parksmap-green-config -n ${GUID}-parks-prod
 
+oc set probe dc/parksmap-green --liveness --failure-threshold 5 --initial-delay-seconds 30 -- echo ok -n ${GUID}-parks-prod
+oc set probe dc/parksmap-green --readiness --failure-threshold 5 --initial-delay-seconds 60 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-prod
+oc set probe dc/mlbparks-green --liveness --failure-threshold 5 --initial-delay-seconds 30 -- echo ok -n ${GUID}-parks-prod
+oc set probe dc/mlbparks-green --readiness --failure-threshold 3 --initial-delay-seconds 60 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-prod
+oc set probe dc/nationalparks-green --liveness --failure-threshold 5 --initial-delay-seconds 30 -- echo ok -n ${GUID}-parks-prod
+oc set probe dc/nationalparks-green --readiness --failure-threshold 3 --initial-delay-seconds 60 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-prod
 
+#expose
 oc expose dc mlbparks-green --port 8080 -n ${GUID}-parks-prod
 oc expose dc nationalparks-green --port 8080 -n ${GUID}-parks-prod
 oc expose dc parksmap-green --port 8080 -n ${GUID}-parks-prod
@@ -77,6 +92,7 @@ oc expose dc mlbparks-blue --port 8080 -n ${GUID}-parks-prod
 oc expose dc nationalparks-blue --port 8080 -n ${GUID}-parks-prod
 oc expose dc parksmap-blue --port 8080 -n ${GUID}-parks-prod
 
+#set green live
 oc expose svc mlbparks-green --name mlbparks -n ${GUID}-parks-prod --labels="type=parksmap-backend"
 oc expose svc nationalparks-green --name nationalparks -n ${GUID}-parks-prod --labels="type=parksmap-backend"
 oc expose svc parksmap-green --name parksmap -n ${GUID}-parks-prod
