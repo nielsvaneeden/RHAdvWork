@@ -22,7 +22,6 @@ oc policy add-role-to-user admin system:serviceaccount:gpte-jenkins:jenkins -n $
 MONGODB_DATABASE="mongodb"
 MONGODB_USERNAME="mongodb"
 MONGODB_PASSWORD="mongodb"
-MONGODB_SERVICE_NAME="mongodb"
 MONGODB_ADMIN_PASSWORD="mongodb"
 MONGODB_VOLUME="4Gi"
 
@@ -32,8 +31,7 @@ oc new-app -f ./Infrastructure/templates/mongo-stateful.template.yaml \
     --param MONGODB_USERNAME=${MONGODB_USERNAME}\
     --param MONGODB_PASSWORD=${MONGODB_PASSWORD}\
     --param MONGODB_ADMIN_PASSWORD=${MONGODB_ADMIN_PASSWORD}\
-    --param MONGODB_VOLUME=${MONGODB_VOLUME}\
-    --param MONGODB_SERVICE_NAME=${MONGODB_SERVICE_NAME}
+    --param MONGODB_VOLUME=${MONGODB_VOLUME}
 
 #configmaps
 oc create configmap mlbparks-blue-config --from-env-file=./Infrastructure/templates/MLBParks-blue.env -n ${GUID}-parks-prod
