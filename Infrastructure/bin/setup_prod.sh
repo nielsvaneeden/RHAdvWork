@@ -25,6 +25,9 @@ MONGODB_PASSWORD="mongodb"
 MONGODB_ADMIN_PASSWORD="mongodb"
 MONGODB_VOLUME="4Gi"
 
+oc create -f ./Infrastructure/templates/mongo-heasless.yaml
+oc create -f ./Infrastructure/templates/mongo-regular-service.yaml
+
 oc new-app -f ./Infrastructure/templates/mongo-stateful.template.yaml \
     -n $GUID-parks-prod\
     --param MONGODB_DATABASE=${MONGODB_DATABASE}\

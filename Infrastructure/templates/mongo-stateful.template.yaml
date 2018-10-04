@@ -24,33 +24,6 @@ objects:
       template: mongodb-persistent
     name: mongodb
   type: Opaque
-- kind: Service
-  apiVersion: v1
-  metadata:
-    name: "mongodb-internal"
-    labels:
-      name: "mongodb"
-    annotations:
-      service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
-  spec:
-    clusterIP: None
-    ports:
-      - name: mongodb
-        port: 27017
-    selector:
-      name: "mongodb"
-- kind: Service
-  apiVersion: v1
-  metadata:
-    name: "mongodb"
-    labels:
-      name: "mongodb"
-  spec:
-    ports:
-      - name: mongodb
-        port: 27017
-    selector:
-      name: "mongodb"
 - kind: StatefulSet
   apiVersion: apps/v1
   metadata:
@@ -79,25 +52,13 @@ objects:
                 mountPath: "/var/lib/mongodb/data"
             env:
               - name: MONGODB_USER
-                valueFrom:
-                  secretKeyRef:
-                    key: database-user
-                    name: mongodb
+                value: ${MONGODB_USER}
               - name: MONGODB_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    key: database-password
-                    name: mongodb
+                value: ${MONGODB_PASSWORD}
               - name: MONGODB_DATABASE
-                valueFrom:
-                  secretKeyRef:
-                    key: database-name
-                    name: mongodb
+                value: ${MONGODB_DATABASE}
               - name: MONGODB_ADMIN_PASSWORD
-                valueFrom:
-                  secretKeyRef:
-                    key: database-admin-password
-                    name: mongodb
+                value: ${MONGODB_ADMIN_PASSWORD}
               - name: MONGODB_REPLICA_NAME
                 value: "rs0"
               - name: MONGODB_KEYFILE_VALUE
@@ -119,7 +80,6 @@ objects:
           resources:
             requests:
               storage: ${MONGODB_VOLUME}
-
 parameters:
   - displayName: Mongo database name
     name: MONGODB_DATABASE
