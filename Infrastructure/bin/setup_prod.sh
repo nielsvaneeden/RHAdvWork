@@ -25,16 +25,9 @@ MONGODB_PASSWORD="mongodb"
 MONGODB_ADMIN_PASSWORD="mongodb"
 MONGODB_VOLUME="4Gi"
 
-oc create -f ./Infrastructure/templates/mongo-heasless.yaml
-oc create -f ./Infrastructure/templates/mongo-regular-service.yaml
-
-oc new-app -f ./Infrastructure/templates/mongo-stateful.template.yaml \
-    -n $GUID-parks-prod\
-    --param MONGODB_DATABASE=${MONGODB_DATABASE}\
-    --param MONGODB_USERNAME=${MONGODB_USERNAME}\
-    --param MONGODB_PASSWORD=${MONGODB_PASSWORD}\
-    --param MONGODB_ADMIN_PASSWORD=${MONGODB_ADMIN_PASSWORD}\
-    --param MONGODB_VOLUME=${MONGODB_VOLUME}
+oc create -f ./Infrastructure/templates/mongo-heasless.yaml -n $GUID-parks-prod
+oc create -f ./Infrastructure/templates/mongo-regular-service.yaml -n $GUID-parks-prod
+oc create -f ./Infrastructure/templates/mongo-statefulset.yaml -n $GUID-parks-prod
 
 #configmaps
 oc create configmap mlbparks-blue-config --from-env-file=./Infrastructure/templates/MLBParks-blue.env -n ${GUID}-parks-prod
