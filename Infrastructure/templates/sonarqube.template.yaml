@@ -82,9 +82,9 @@ objects:
           resources:
             limits:
               cpu: 500m
-              memory: 512mi
+              memory: 512Mi
             requests:
-              memory: 512mi
+              memory: 512Mi
           securityContext:
             capabilities: {}
             privileged: false
