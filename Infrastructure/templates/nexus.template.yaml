@@ -40,7 +40,7 @@ objects:
     strategy:
       activeDeadlineSeconds: 21600
       recreateParams:
-        timeoutSeconds: 1000
+        timeoutSeconds: 3000
       resources: {}
       type: Recreate
     template:
