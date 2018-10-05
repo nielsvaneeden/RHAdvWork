@@ -38,14 +38,6 @@ oc set env dc/mlbparks --from=configmap/mlbparks-config -n ${GUID}-parks-dev
 oc set env dc/nationalparks --from=configmap/nationalparks-config -n ${GUID}-parks-dev
 oc set env dc/parksmap --from=configmap/parksmap-config -n ${GUID}-parks-dev
 
-sleep 10
-oc set probe dc/parksmap --liveness --failure-threshold 5 --initial-delay-seconds 30 -- echo ok -n ${GUID}-parks-dev
-oc set probe dc/parksmap --readiness --failure-threshold 5 --initial-delay-seconds 60 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-dev
-oc set probe dc/mlbparks --liveness --failure-threshold 5 --initial-delay-seconds 30 -- echo ok -n ${GUID}-parks-dev
-oc set probe dc/mlbparks --readiness --failure-threshold 3 --initial-delay-seconds 60 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-dev
-oc set probe dc/nationalparks --liveness --failure-threshold 5 --initial-delay-seconds 30 -- echo ok -n ${GUID}-parks-dev
-oc set probe dc/nationalparks --readiness --failure-threshold 3 --initial-delay-seconds 60 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-dev
-
 oc expose dc mlbparks --port 8080 -n ${GUID}-parks-dev
 oc expose dc nationalparks --port 8080 -n ${GUID}-parks-dev
 oc expose dc parksmap --port 8080 -n ${GUID}-parks-dev
@@ -53,6 +45,13 @@ oc expose dc parksmap --port 8080 -n ${GUID}-parks-dev
 oc expose svc mlbparks -n ${GUID}-parks-dev --labels="type=parksmap-backend"
 oc expose svc nationalparks -n ${GUID}-parks-dev --labels="type=parksmap-backend"
 oc expose svc parksmap -n ${GUID}-parks-dev
+
+oc set probe dc/mlbparks --liveness --failure-threshold 5 --initial-delay-seconds 30 -- echo ok -n ${GUID}-parks-dev
+oc set probe dc/mlbparks --readiness --failure-threshold 3 --initial-delay-seconds 60 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-dev
+oc set probe dc/nationalparks --liveness --failure-threshold 5 --initial-delay-seconds 30 -- echo ok -n ${GUID}-parks-dev
+oc set probe dc/nationalparks --readiness --failure-threshold 3 --initial-delay-seconds 60 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-dev
+oc set probe dc/parksmap --liveness --failure-threshold 5 --initial-delay-seconds 30 -- echo ok -n ${GUID}-parks-dev
+oc set probe dc/parksmap --readiness --failure-threshold 5 --initial-delay-seconds 60 --get-url=http://:8080/ws/healthz/ -n ${GUID}-parks-dev
 
 oc set deployment-hook dc/mlbparks  -n ${GUID}-parks-dev --post -c mlbparks --failure-policy=abort -- curl http://$(oc get route mlbparks -n ${GUID}-parks-dev -o jsonpath='{ .spec.host }')/ws/data/load/
 oc set deployment-hook dc/nationalparks  -n ${GUID}-parks-dev --post -c nationalparks --failure-policy=abort -- curl http://$(oc get route nationalparks -n ${GUID}-parks-dev -o jsonpath='{ .spec.host }')/ws/data/load/
