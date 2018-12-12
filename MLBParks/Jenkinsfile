@@ -111,6 +111,13 @@ podTemplate(
       stage('Switch over to new Version') {
         //input "Switch Production?"
         echo "Switching Production application to ${destApp}."
+
+        sh "oc delete services ${activeApp} -n ${GUID}-parks-prod"
+        sh "oc delete services ${destApp} -n ${GUID}-parks-prod"
+
+        sh "oc expose dc ${activeApp} --port 8080 -n ${GUID}-parks-prod"
+        sh "oc expose dc ${destApp} --name mlbparks --port 8080 -n ${GUID}-parks-prod"
+
         sh 'oc patch route mlbparks -n ${GUID}-parks-prod -p \'{"spec":{"to":{"name":"' + destApp + '"}}}\''
       }
     }
