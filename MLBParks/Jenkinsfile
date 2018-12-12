@@ -112,7 +112,7 @@ podTemplate(
         //input "Switch Production?"
         echo "Switching Production application to ${destApp}."
 
-        sh "oc delete services ${activeApp} -n ${GUID}-parks-prod"
+        sh "oc delete services ${mlbparks} -n ${GUID}-parks-prod"
         sh "oc delete services ${destApp} -n ${GUID}-parks-prod"
 
         sh "oc expose dc ${activeApp} --port 8080 -n ${GUID}-parks-prod"
