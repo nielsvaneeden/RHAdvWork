@@ -56,9 +56,9 @@ oc set env dc/mlbparks-green --from=configmap/mlbparks-green-config -n ${GUID}-p
 oc set env dc/nationalparks-green --from=configmap/nationalparks-green-config -n ${GUID}-parks-prod
 oc set env dc/parksmap-green --from=configmap/parksmap-green-config -n ${GUID}-parks-prod
 
-#expose services and green backends
-oc expose dc mlbparks-green --name mlbparks --port 8080 -n ${GUID}-parks-prod
-oc expose dc nationalparks-green --name nationalparks --port 8080 -n ${GUID}-parks-prod
+#expose services
+oc expose dc mlbparks-green --port 8080 -n ${GUID}-parks-prod
+oc expose dc nationalparks-green --port 8080 -n ${GUID}-parks-prod
 oc expose dc parksmap-green --port 8080 -n ${GUID}-parks-prod
 
 oc expose dc mlbparks-blue --port 8080 -n ${GUID}-parks-prod
