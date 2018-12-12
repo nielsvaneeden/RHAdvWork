@@ -66,8 +66,8 @@ oc expose dc nationalparks-blue --port 8080 -n ${GUID}-parks-prod
 oc expose dc parksmap-blue --port 8080 -n ${GUID}-parks-prod
 
 #set green live
-oc expose svc mlbparks --name mlbparks -n ${GUID}-parks-prod --labels="type=parksmap-backend"
-oc expose svc nationalparks --name nationalparks -n ${GUID}-parks-prod --labels="type=parksmap-backend"
+oc expose svc mlbparks-green --name mlbparks -n ${GUID}-parks-prod --labels="type=parksmap-backend"
+oc expose svc nationalparks-green --name nationalparks -n ${GUID}-parks-prod --labels="type=parksmap-backend"
 oc expose svc parksmap-green --name parksmap -n ${GUID}-parks-prod
 
 oc set deployment-hook dc/mlbparks-green  -n ${GUID}-parks-prod --post -c mlbparks-green --failure-policy=ignore -- curl http://mlbparks-green.${GUID}-parks-prod.svc.cluster.local:8080/ws/data/load/
