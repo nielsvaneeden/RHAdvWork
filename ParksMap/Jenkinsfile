@@ -72,7 +72,7 @@ podTemplate(
 
         // Delete task with id "1"
         echo "Health check ParksMap"
-        sh "curl -i http://parksmap-${GUID}-parks-dev.apps.na39.openshift.opentlc.com/ws/healthz/"
+        sh "curl -i http://parksmap-${GUID}-parks-dev.apps.na311.openshift.opentlc.com/ws/healthz/"
       }
 
       // Copy Image to Nexus Docker Registry

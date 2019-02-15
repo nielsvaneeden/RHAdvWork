@@ -260,7 +260,7 @@ objects:
       app: sonarqube
     name: sonarqube
   spec:
-    host: sonarqube-${GUID}-sonarqube.apps.na39.openshift.opentlc.com
+    host: sonarqube-${GUID}-sonarqube.apps.na311.openshift.opentlc.com
     port:
       targetPort: 9000-tcp
     to:

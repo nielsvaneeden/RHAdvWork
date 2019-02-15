@@ -3,7 +3,7 @@
 if [ "$#" -ne 3 ]; then
     echo "Usage:"
     echo "  $0 GUID REPO CLUSTER"
-    echo "  Example: $0 wkha https://github.com/wkulhanek/ParksMap na39.openshift.opentlc.com"
+    echo "  Example: $0 wkha https://github.com/wkulhanek/ParksMap na311.openshift.opentlc.com"
     exit 1
 fi
 
@@ -24,7 +24,7 @@ echo "Setting up Jenkins in project ${GUID}-jenkins from Git Repo ${REPO} for Cl
 # * parksmap-pipeline
 # The build configurations need to have two environment variables to be passed to the Pipeline:
 # * GUID: the GUID used in all the projects
-# * CLUSTER: the base url of the cluster used (e.g. na39.openshift.opentlc.com)
+# * CLUSTER: the base url of the cluster used (e.g. na311.openshift.opentlc.com)
 
 # To be Implemented by Student
 oc policy add-role-to-user edit system:serviceaccount:$GUID-jenkins:jenkins -n $GUID-jenkins
