@@ -45,6 +45,6 @@ oc create -f ./Infrastructure/templates/nationalparks.pipeline.yaml -n $GUID-jen
 oc create -f ./Infrastructure/templates/mlbparks.pipeline.yaml -n $GUID-jenkins
 oc create -f ./Infrastructure/templates/parksmap.pipeline.yaml -n $GUID-jenkins
 
-oc env bc/nationalparks-pipeline GUID=$GUID CLUSTER=$CLUSTER -n $GUID-jenkins
-oc env bc/mlbparks-pipeline GUID=$GUID CLUSTER=$CLUSTER -n $GUID-jenkins
-oc env bc/parksmap-pipeline GUID=$GUID CLUSTER=$CLUSTER -n $GUID-jenkins
+oc set env bc/nationalparks-pipeline GUID=$GUID CLUSTER=$CLUSTER -n $GUID-jenkins
+oc set env bc/mlbparks-pipeline GUID=$GUID CLUSTER=$CLUSTER -n $GUID-jenkins
+oc set env bc/parksmap-pipeline GUID=$GUID CLUSTER=$CLUSTER -n $GUID-jenkins
